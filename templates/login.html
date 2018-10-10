@@ -1,0 +1,37 @@
+{% extends "layout.html" %}
+{% block title %}
+ Login
+{% endblock %}
+{% block body %}
+
+    <div class="content-section">
+      <div class="center">
+        <h1>Login</h1>
+        <br/>
+          <form action="{{ url_for('login_user') }}" method="post">
+
+              <div class="input-container">
+                    <i class="fa fa-user icon"></i>
+                        <input class="input-field" type="text" placeholder="Username" name="username" id="username">
+                          </div>
+                           <br>
+
+                          <div class="input-container">
+                            <i class="fa fa-key icon"></i>
+                    <input class="input-field" type="password" placeholder="Password" name="password" id="password">
+              </div>
+              <br>
+
+            <button type="submit" class="btn">Login</button>
+         </form>
+
+  </div>
+    </div>
+
+
+
+</body>
+
+
+
+{% endblock %}

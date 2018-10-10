@@ -24,3 +24,4 @@ SQLAlchemy==1.2.12
 Unidecode==1.0.22
 urllib3==1.23
 Werkzeug==0.14.1
+

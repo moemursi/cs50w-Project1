@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+
+{% block title %} Search {% endblock %}
+
+{% block body %}
+
+    <div class="content-section">
+       <div class="center">
+    <h1>Search</h1>
+    <br/>
+            <form class="search" form action="{{ url_for('search') }}" method="post">
+              <input type="text" placeholder="Search.." name="search">
+              <button type="submit"><i class="fa fa-search"></i></button>
+            </form>
+
+
+    </div>
+
+  </div>
+
+
+
+
+
+	<div class="container">
+		<table class="table table-striped">
+			<thead>
+				<tr>
+					<th scope="col"> Title </th>
+					<th scope="col"> Author </th>
+				</tr>
+			</thead>
+
+			<tbody>
+				{% for item in range(result|length) -%}
+					<tr>
+						<th scope="row"><a href="{{  url_for('search_id', id=result[item][0]) }}"> {{ result[item][2] }}</a></th>
+						<td><a href="{{url_for('search_id', id=result[item][0])}}">{{ result[item][3] }}</a></td>
+					</tr>
+				{%- endfor %}
+			</tbody>
+		</table>
+	</div>
+
+	<div class="container">
+		<h2>
+			{{ message }}
+		</h2>
+	</div>
+
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends 'layout.html' %}
+
+{% block title %}
+   Book Information
+{% endblock %}
+
+{% block body %}
+      <div class="content-section">
+           <div class="center">
+              <h2> {{ book_info[2] }}</h2>
+
+       </div>
+      <div class="container">
+          <div class="alert alert-danger" role="alert">
+         <h2> {{ message }} </h2>
+         </div>
+
+      </div>
+    </div>
+    <div class="container">
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th scope="col">ISBN</th>
+                            <th scope="col">Author</th>
+                            <th scope="col">Title</th>
+                            <th scope="col">Year</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <th scope="row">{{ book_info[1] }}</th>
+                            <td>{{ book_info[2] }}</td>
+                            <td>{{ book_info[3] }}</td>
+                            <td>{{ book_info[4] }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                  </div>
+
+     <!-- goodreads info -->
+    <div class="container">
+        <h4>GoodReads Reviews : </h4>
+        <h5>Average Rating : {{ goodreads['score'] }}</h5>
+        <h5>Number Of Reviews: {{ goodreads['review_qty'] }}</h5>
+    </div>
+    <!--    review submission -->
+     <div class="container">
+       <form action="{{ url_for('review',id =  book_info[0]) }}" , method="post">
+
+              <div class="form-group">
+                <label for="exampleSelect1">Rate the book :</label>
+                      <small id="emailHelp" class="form-text text-muted">rate the book from 1 to 5 .</small>
+                        <select class="form-control" id="exampleSelect1" name="review">
+                          <option>1</option>
+                          <option>2</option>
+                          <option>3</option>
+                          <option>4</option>
+                          <option>5</option>
+                        </select>
+              </div>
+                  <div class="form-group">
+                    <label for="exampleTextarea" > Write your review : </label>
+                    <textarea name="comment" class="form-control" id="exampleTextarea" rows="3" ></textarea>
+                  </div>
+              <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+     </div>
+
+    <!-- review list-->
+    <div class="container">
+                    <table class="table table-striped">
+                         <thead>
+                           <tr>
+                            <th>Rating</th>
+                            <th>Comment</th>
+                           </tr>
+                         </thead>
+                            <tr>
+                            {% for row in rows %}
+                                <tr>
+                                    <td> {{ row.rating }} </td>
+                                    <td> {{ row.comment }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+                  </div>
+
+
+
+
+{% endblock %}

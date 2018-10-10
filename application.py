@@ -1,13 +1,22 @@
 import json
 import os
+import requests
 from functools import wraps
 from flask import Flask, session, request, g, redirect, url_for, render_template
 from flask_session import Session
 from passlib.hash import pbkdf2_sha256
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
+from dotenv import load_dotenv,find_dotenv
+
+
+
+load_dotenv(find_dotenv())
+
 
 app = Flask(__name__)
+DEBUG = True
+
 
 # Check for environment variable
 if not os.getenv("DATABASE_URL"):
@@ -35,15 +44,6 @@ def login_required(f):
             return redirect(url_for('login', next=request.url))
         return f(*args, **kwargs)
     return decorated_function
-def getGoodreads(id,book_info):
-    response  = {}
-    request_url = "https://www.goodreads.com/book/review_counts.json"
-    res = request.get(request_url,params={"key":os.getenv('GOODREADS_KEY'),"isbns":book_info[1]})
-    json_data = res.json()
-    response['score']  = json_data['books'][0]['average_rating']
-    response['review_qty'] = json_data['books'][0]['work_review_count']
-
-    return response
 
 @app.route("/")
 def index():
@@ -65,7 +65,7 @@ def register_user():
         hash = pbkdf2_sha256.encrypt(password,rounds=200000,salt_size=16) #hash the password
         db.execute("INSERT INTO users (username, password) VALUES (:username, :password)",{"username":username,"password":hash})
         db.commit()
-        return render_template("index.html")
+        return render_template("search.html")
     else:
         return "Sorry Pal !!! username is already taken"
 
@@ -83,7 +83,9 @@ def login_user():
      if pbkdf2_sha256.verify(password,user_data.password):
         session["user"] = username
         session["logged_in"] = True
-        return "search.html"
+        return render_template("search.html")
+     else:
+         return "wrong info entered"
 @app.route("/logout")
 def logout():
     """Logout user"""
@@ -91,7 +93,7 @@ def logout():
     session.pop('user',None)
     session.pop('logged_in',None)
 
-    return redirect(url_for(index))
+    return redirect(url_for('index'))
 @app.route("/search/",methods=['GET','POST'])
 @login_required
 def search():
@@ -105,19 +107,102 @@ def search():
         search_input = '%' + str.lower(search) + '%'
 
         message = "No Results Found "
-        result  = db.execute("SELECT * FROM books WHERE ")
+        result = db.execute("SELECT * FROM books WHERE isbn LIKE :search \
+        			OR LOWER(author) LIKE :search \
+        			OR LOWER(title) LIKE :search \
+        			OR theyear LIKE :search", \
+                            {"search": search_input}).fetchall()
 
-@app.route("/book/<isbn>",methods=['GET'])
-def book(isbn):
+        if not result:
+            return render_template("search.html" , message=message)
+        return render_template("search.html" , result=result)
+    else:
+        return render_template('search.html')
+def getGoodreads(id,book_info):
+    response  = {}
+    request_url = "https://www.goodreads.com/book/review_counts.json"
+    res = requests.get(request_url,params={"key":os.getenv('GOODREADS_KEY'),"isbns":book_info[1]})
+    json_data = res.json()
+    response['score']  = json_data['books'][0]['average_rating']
+    response['review_qty'] = json_data['books'][0]['work_reviews_count']
+
+    return response
+
+@app.route('/search/<id>')
+@login_required
+def search_id(id):
+    book_id = int(id)
+    book_info = db.execute("SELECT * FROM books WHERE id = :id", {"id": book_id}).fetchone()
+
+    goodreads_data = getGoodreads(id,book_info)
+    review_list = db.execute("SELECT * FROM reviews WHERE review_id = :review_id",{"review_id": book_id}).fetchall()
+    return render_template("book.html", book_info=book_info , review_list = review_list , goodreads = goodreads_data)
+
+
+@app.route("/review/<id>", methods=['POST'])
+def review(id):
+    """
+    Handles user review submission and display, and also manages
+    Goodreads API for fetching average rating and number of reviews
+    for books.
+    """
+    user_id = db.execute("SELECT id FROM users WHERE username = :username", \
+                         {"username": session["user"]}).fetchone()
+
+    user_id = int(user_id[0])
+    book_id = int(id)
+    message = None
+
+    book_info = db.execute("SELECT * FROM books WHERE id = :id", \
+                           {"id": book_id}).fetchone()
+
+    goodreads_data = getGoodreads(id, book_info)
+
+    if not db.execute("SELECT * FROM reviews WHERE user_id = :user_id AND review_id = :review_id", \
+                      {"user_id": user_id, "review_id": book_id}).fetchone():
+        rating = request.form.get("review")
+        comment = request.form.get("comment")
+
+        db.execute("INSERT INTO reviews (rating, review_id, text, user_id) VALUES (:rating, :book_id, :comment, :user_id)", \
+                   {"rating": rating, "book_id": book_id, "comment": comment, "user_id": user_id})
+        db.commit()
+    elif db.execute("SELECT * FROM reviews WHERE user_id = :user_id AND review_id = :review_id", \
+                      {"user_id": user_id, "review_id": book_id}).fetchone():
+
+        message = "You already Submitted  a review"
+
+
+    index = 0
+    rows = []
+
+    review_list = db.execute("SELECT * FROM reviews WHERE review_id = :review_id", \
+                             {"review_id": book_id}).fetchall()
+
+    for entry in review_list:
+        row = dict(rating=review_list[index]["rating"],
+                   comment=review_list[index]["text"])
+        rows.append(row)
+        index += 1
+
+    return render_template("book.html", book_info=book_info, review_list=review_list, goodreads=goodreads_data,rows=rows,message=message)
+
+    return redirect(url_for('search', id=book_id))
+
+
+@app.route("/api/<isbn>", methods=['GET'])
+def api(isbn):
 
     response = {}
-    data  = db.execute("SELECT * FROM books WHERE isbn = :isbn", {"isbn": isbn}).fetchone()
+
+    data = db.execute("SELECT * FROM books WHERE isbn = :isbn", \
+                      {"isbn": isbn}).fetchone()
 
     if not data:
-        return "No books found"
+        abort(404)
+
     response["isbn"] = data[1]
     response["author"] = data[2]
     response["title"] = data[3]
-    response["year"]= data[4]
+    response["year"] = data[4]
 
-    return  json.dumps(response, ensure_ascii=False)
+    return json.dumps(response, ensure_ascii=False)

@@ -1,0 +1,27 @@
+
+{% extends "layout.html" %}
+{% block title %}Home{% endblock %}
+{% block body %}
+<div class="intro-header">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="intro-message">
+                    <h1>Book Reviews</h1>
+                     <h3>Search for others reviews and add yours!</h3>
+                    {% if g.user %}
+                       <h3> You are logged in as {{ g.user }} !!! </h3>
+                    {% else %}
+                       <a href="{{ url_for('login') }}"> Click To Login</a><br>
+                       <h3>or</h3><br>
+                       <a href="{{ url_for('registeration') }}"> Register </a>
+
+                     {% endif %}
+                    <hr class="intro-divider">
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

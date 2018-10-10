@@ -1,29 +1,37 @@
-""" Import script for books to database"""
 import csv
 import os
-from dotenv import load_dotenv, find_dotenv
+from dotenv import load_dotenv,find_dotenv
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 
-
-
-# load dotenv in the base root
 load_dotenv(find_dotenv())
 
+
+# Check for environment variable
 if not os.getenv("DATABASE_URL"):
     raise RuntimeError("DATABASE_URL is not set")
 
-
-#database
 
 engine = create_engine(os.getenv("DATABASE_URL"))
 db = scoped_session(sessionmaker(bind=engine))
 
 
-with open('books.csv', newline='') as csvfile:
-    reader =  csv.reader(csvfile)
-    for line in reader:
-        print(line)
-        db.execute("INSERT INTO books (isbn,author,title,year) VALUES (:isbn,:author,:title,:year)",\
-                   {"isbn":line[0],"author":line[1],"title":line[2],"year":line[3]})
-        db.commit()
+
+
+def main():
+    f = open("books.csv")
+    reader = csv.reader(f)
+    next(reader, None)
+    counter = 0
+    for isbn, title , author, year in reader:
+        db.execute("INSERT INTO books (isbn, title, author,theyear) VALUES (:isbn,:title,:author,:theyear)",
+                    {"isbn": isbn, "title": title, "author": author, "theyear": year})
+        counter+=1
+        print(f"Added {counter} successfully.")
+
+
+    db.commit()
+
+if __name__ == "__main__":
+    main()
